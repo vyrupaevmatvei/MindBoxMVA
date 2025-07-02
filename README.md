@@ -15,10 +15,11 @@
 4) Затраты ресурсов укажем в resources
 5) Для отказоустойчивости добавил PDB
 P.S. Для проверки синтаксиса использовал dry-run=client, также попробовал прогнать через minikube(смотрите скриншот), но есть ошибки, т.к. не указан базовый образ
+
 Использованные ресурсы:
 Сначала попробовал использовать ChatGPT и DeepSeek, но их решение было очень разным, решил делать с нуля. Также нашел на гитхабе два решения подобной задачи(5-ти летней давности), помогли пояснения других участников стажировки:)
-https://habr.com/ru/companies/otus/articles/576944/
-https://habr.com/ru/companies/vk/articles/484344/
-https://habr.com/ru/companies/nixys/articles/490680/
-https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
-https://kubernetes.io/docs/tasks/run-application/configure-pdb/
+1) https://habr.com/ru/companies/otus/articles/576944/
+2) https://habr.com/ru/companies/vk/articles/484344/
+3) https://habr.com/ru/companies/nixys/articles/490680/
+4) https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+5) https://kubernetes.io/docs/tasks/run-application/configure-pdb/
