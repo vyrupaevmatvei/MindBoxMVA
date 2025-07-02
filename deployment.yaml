@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: myapp
 spec:
-  replicas: 1
+  replicas: 3 #Делаем по 3 реплики в каждый узел
   selector:
     matchLabels:
       app: myapp
@@ -14,23 +14,24 @@ spec:
     spec:
       containers:
       - name: myapp
-        image: nginx:alpine
+        image: registry/myapp:latest # Указывать нужный образ и registry
         resources:
           requests:
             cpu: "200m"
             memory: "128Mi"
           limits:
-            memory: "128Mi"
+            memory: "256Mi"
             cpu: "500m"
+            # 0.2 ядра должно хватить для начала и дальнейшей работы, 0.5 - максимум. Память примерно равна 128, но не больше 256
         ports:
         - containerPort: 8080
         startupProbe:
           httpGet:
-            path: /index.html
+            path: /
             port: 8080
-          # приложение требует около 5-10 секунд для инициализации, periodSeconds * failureThreshold должно быть достаточно
           periodSeconds: 5
           failureThreshold: 3
+          # приложение требует около 5-10 секунд для инициализации, periodSeconds * failureThreshold должно быть достаточно
       affinity:
         podAntiAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -38,7 +39,7 @@ spec:
               matchLabels:
                 app: myapp  
             topologyKey: topology.kubernetes.io/zone  
-        
+        # Добавим podAntiAffinity для топологии кластера
 ---
 apiVersion: v1
 kind: Service
@@ -52,6 +53,7 @@ spec:
     targetPort: 8080
   selector:
     app: myapp
+    # Добавим сервис
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
@@ -62,8 +64,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: myapp
-  minReplicas: 1
-  maxReplicas: 4
+  minReplicas: 3
+  maxReplicas: 5
   metrics:
   - type: Resource
     resource:
@@ -71,19 +73,15 @@ spec:
       target:
         type: Utilization
         averageUtilization: 50
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: AverageValue
-        averageValue: 128Mi
+        # В HPA укажем, что минимальное количество реплик равно 3, а максимальное 5. Целевая загрузка CPU 50% от requests
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata: 
   name: myapp-pdb
 spec:
-  minAvailable: 1
+  minAvailable: 3
   selector:
     matchLabels:
       app: myapp
+      # Добавил PDA для отказоустойчивости, выбрал 3 ноды, чтобы не было конфликта с HPA и стартовым количеством реплик
