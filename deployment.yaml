@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - name: myapp
+        image: nginx:alpine
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "128Mi"
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 8080
+        startupProbe:
+          httpGet:
+            path: /index.html
+            port: 8080
+          # приложение требует около 5-10 секунд для инициализации, periodSeconds * failureThreshold должно быть достаточно
+          periodSeconds: 5
+          failureThreshold: 3
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: myapp  
+            topologyKey: topology.kubernetes.io/zone  
+        
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp
+  labels:
+    app: myapp
+spec:
+  ports:
+  - port: 80
+    targetPort: 8080
+  selector:
+    app: myapp
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: myapp-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: myapp
+  minReplicas: 1
+  maxReplicas: 4
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: AverageValue
+        averageValue: 128Mi
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: 
+  name: myapp-pdb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: myapp
